@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Form</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            text-align: center;
+        }
+        form {
+            display: inline-block;
+            width: 100%;
+            max-width: 600px;
+        }
+        label, select, input, button {
+            display: block;
+            margin: 10px auto;
+            width: 100%;
+            max-width: 400px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #333;
+            text-align: left;
+        }
+        button {
+            height: 50px;
+            width: 100%;
+            max-width: 200px;
+            background: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-family: Consolas, Courier New, monospace;
+            border: solid #404c5d 1px;
+            font-size: 16px;
+            color: rgb(161, 161, 161);
+            transition: 500ms;
+            border-radius: 5px;
+            background: linear-gradient(145deg, #2e2d2d, #212121);
+            box-shadow: -1px -5px 15px #41465b, 5px 5px 15px #41465b,
+                inset 5px 5px 10px #212121, inset -5px -5px 10px #212121;
+        }
+        button:hover {
+            box-shadow: 1px 1px 13px #20232e, -1px -1px 13px #545b78;
+            color: #d6d6d6;
+            transition: 500ms;
+        }
+        button:active {
+            box-shadow: 1px 1px 13px #20232e, -1px -1px 33px #545b78;
+            color: #d6d6d6;
+            transition: 100ms;
+        }
+        .hidden {
+            display: none;
+        }
+        .success-message, .result-message {
+            color: #0f0;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .error-message {
+            color: #f00;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Student Form</h1>
+    <form id="studentForm">
+        <label for="branch">Branch:</label>
+        <select id="branch" name="branch">
+            <option value="">Select Branch</option>
+        </select>
+        <label for="batch">Batch:</label>
+        <select id="batch" name="batch">
+            <option value="">Select Batch</option>
+        </select>
+        <label for="grade">Grade:</label>
+        <select id="grade" name="grade">
+            <option value="">Select Grade</option>
+        </select>
+        <label for="teacher">Teacher:</label>
+        <select id="teacher" name="teacher">
+            <option value="">Select Teacher</option>
+        </select>
+        <label for="subject">Subject:</label>
+        <select id="subject" name="subject">
+            <option value="">Select Subject</option>
+        </select>
+        <label for="chapter">Chapter:</label>
+        <select id="chapter" name="chapter">
+            <option value="">Select Chapter</option>
+        </select>
+        <label for="subtopic">Subtopic:</label>
+        <input type="text" id="subtopic" name="subtopic">
+        <label for="classType">Class Type:</label>
+        <select id="classType" name="classType">
+            <option value="">Select Class Type</option>
+        </select>
+        <table id="studentTable">
+            <thead>
+                <tr>
+                    <th>Student Name</th>
+                    <th>Assignment Grade</th>
+                    <th>Present</th>
+                    <th>Quiz Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Student rows will be added here -->
+            </tbody>
+        </table>
+        <button type="button" id="submitBtn">Submit</button>
+    </form>
+    <div id="loader" class="loader hidden"></div>
+    <div id="successMessage" class="success-message hidden">Form submitted successfully!</div>
+    <div id="errorMessage" class="error-message hidden">An error occurred. Please try again.</div>
+    <div id="resultMessage" class="result-message hidden">
+        Topper: <span id="topperName"></span><br>
+        Present Count: <span id="presentCount"></span>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/get_data')
+                .then(response => response.json())
+                .then(data => {
+                    populateDropdown('branch', data.branches);
+                    populateDropdown('teacher', data.teachers);
+                    populateDropdown('subject', data.subjects);
+                    populateDropdown('grade', data.grades);
+                    populateDropdown('classType', data.classTypes);
+                    populateDropdown('batch', data.batches);
+
+                    const batchSelect = document.getElementById('batch');
+                    batchSelect.addEventListener('change', function() {
+                        populateStudentTable(data.students, batchSelect.value);
+                    });
+
+                    const subjectSelect = document.getElementById('subject');
+                    subjectSelect.addEventListener('change', function() {
+                        populateDropdown('chapter', data.chapterNames.filter(c => c.subjectName === subjectSelect.value).map(c => c.chapterName));
+                    });
+                });
+
+            document.getElementById('submitBtn').addEventListener('click', function() {
+                const studentData = Array.from(document.querySelectorAll('#studentTable tbody tr')).map(row => {
+                    const cells = row.querySelectorAll('td');
+                    return {
+                        studentName: cells[0].innerText,
+                        assignmentGrade: cells[1].querySelector('select').value,
+                        present: cells[2].querySelector('input').checked ? 'Present' : 'Absent',
+                        quizScore: cells[3].querySelector('input').value
+                    };
+                });
+
+                const data = {
+                    branchName: document.getElementById('branch').value,
+                    batchName: document.getElementById('batch').value,
+                    grade: document.getElementById('grade').value,
+                    teacherName: document.getElementById('teacher').value,
+                    subjectName: document.getElementById('subject').value,
+                    chapterName: document.getElementById('chapter').value,
+                    subtopicName: document.getElementById('subtopic').value,
+                    classType: document.getElementById('classType').value,
+                    studentData: studentData
+                };
+
+                document.getElementById('loader').classList.remove('hidden');
+                document.getElementById('errorMessage').classList.add('hidden');
+                document.getElementById('resultMessage').classList.add('hidden');
+
+                fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('successMessage').classList.remove('hidden');
+                    document.getElementById('topperName').innerText = result.topperName;
+                    document.getElementById('presentCount').innerText = result.presentCount;
+                    document.getElementById('resultMessage').classList.remove('hidden');
+
+                    // Reset the form after 5 seconds
+                    setTimeout(() => {
+                        document.getElementById('studentForm').reset();
+                        document.querySelector('#studentTable tbody').innerHTML = '';
+                        document.getElementById('successMessage').classList.add('hidden');
+                        document.getElementById('resultMessage').classList.add('hidden');
+                    }, 5000);
+                })
+                .catch(error => {
+                    document.getElementById('loader').classList.add('hidden');
+                    document.getElementById('errorMessage').classList.remove('hidden');
+                });
+            });
+        });
+
+        function populateDropdown(id, options) {
+            const select = document.getElementById(id);
+            select.innerHTML = `<option value="">Select ${id.charAt(0).toUpperCase() + id.slice(1)}</option>`;
+            options.forEach(option => {
+                select.innerHTML += `<option value="${option}">${option}</option>`;
+            });
+        }
+
+        function populateStudentTable(students, batchName) {
+            const tableBody = document.querySelector('#studentTable tbody');
+            tableBody.innerHTML = '';
+            students.filter(student => student.batchName === batchName).forEach(student => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${student.studentName}</td>
+                        <td>
+                            <select>
+                                ${['AA', 'AB', 'AC', 'BA', 'BB', 'BC', 'CA', 'CB', 'CC', 'DD'].map(grade => `<option value="${grade}">${grade}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="checkbox"></td>
+                        <td><input type="number" min="1" max="10"></td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
